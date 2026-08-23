@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community Health CBT</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f3f6f9;color:#18212b}
+.container{max-width:900px;margin:auto;padding:20px}
+header{background:#0b5d4b;color:white}
+header .container{padding-top:22px;padding-bottom:22px}
+h1{margin:0;font-size:28px} h2{margin-top:0}
+.subtitle{opacity:.9;margin-top:6px}
+.card{background:white;border-radius:14px;padding:28px;box-shadow:0 6px 25px rgba(0,0,0,.08)}
+input[type=text]{width:100%;padding:14px;border:1px solid #cbd5dc;border-radius:8px;font-size:16px;margin:8px 0 16px}
+button{border:0;border-radius:8px;padding:12px 18px;font-size:16px;cursor:pointer;background:#0b5d4b;color:white}
+button.secondary{background:#64748b} button:disabled{opacity:.5;cursor:not-allowed}
+.hidden{display:none}
+.progress-wrap{height:10px;background:#e2e8f0;border-radius:20px;overflow:hidden;margin:16px 0}
+.progress{height:100%;background:#0b5d4b;width:0}
+.question-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#52606d;font-size:14px}
+.question{font-size:21px;line-height:1.5;margin:20px 0}
+.option{display:block;border:1px solid #d5dde5;padding:14px;margin:10px 0;border-radius:9px;cursor:pointer;background:white}
+.option:hover{background:#f1f8f6}
+.option input{margin-right:10px}
+.actions{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
+.result{text-align:center} .score{font-size:52px;font-weight:700;color:#0b5d4b}
+.review{text-align:left;margin-top:25px} .review-item{border-top:1px solid #e2e8f0;padding:14px 0}
+.correct{color:#087443;font-weight:700} .wrong{color:#b42318;font-weight:700}
+.small{font-size:13px;color:#64748b} footer{text-align:center;padding:25px;color:#64748b}
+@media(max-width:600px){.card{padding:18px}h1{font-size:23px}.question{font-size:18px}button{width:100%}.actions{flex-direction:column}}
+</style>
+</head>
+<body>
+<header><div class="container">
+<h1>Community Health CBT</h1>
+<div class="subtitle">100 Multiple-Choice Questions • Offline Examination</div>
+</div></header>
+
+<main class="container">
+<section id="start" class="card">
+<h2>Student Registration</h2>
+<p>Enter your full name below to get access to the questions.</p>
+<label for="studentName"><strong>Student Name</strong></label>
+<input id="studentName" type="text" placeholder="Enter your full name" autocomplete="name">
+<p class="small">This CBT is fully self-contained and works without an internet connection.</p>
+<button onclick="startTest()">Start Test</button>
+</section>
+
+<section id="test" class="card hidden">
+<div class="question-meta"><span id="studentDisplay"></span><span id="counter"></span></div>
+<div class="progress-wrap"><div id="progress" class="progress"></div></div>
+<div id="question" class="question"></div>
+<div id="options"></div>
+<div class="actions">
+<button id="prevBtn" class="secondary" onclick="previousQuestion()">Previous</button>
+<button id="nextBtn" onclick="nextQuestion()">Next</button>
+</div>
+</section>
+
+<section id="result" class="card hidden">
+<div class="result">
+<h2>Examination Completed</h2>
+<p id="resultName"></p>
+<div id="score" class="score"></div>
+<p id="summary"></p>
+<button onclick="showReview()">Review Answers</button>
+<button class="secondary" onclick="location.reload()">Start New Test</button>
+</div>
+<div id="review" class="review hidden"></div>
+</section>
+</main>
+<footer>Community Health CBT • Offline Version</footer>
+
+<script>
+const questions = [{"q": "Which of the following best describes community health?", "options": ["Health services provided only in hospitals", "The health of people living and working in a defined community", "Treatment of diseases in private clinics", "Medical care provided only to children"], "answer": "B"}, {"q": "What is the primary goal of community health?", "options": ["To increase hospital admissions", "To promote and protect the health of the population", "To provide expensive specialist care", "To replace all traditional health practices"], "answer": "B"}, {"q": "Primary health care was strongly emphasized internationally by the declaration made at?", "options": ["Geneva in 1948", "Alma-Ata in 1978", "Lagos in 1990", "New York in 2000"], "answer": "B"}, {"q": "Which principle is central to primary health care?", "options": ["Community participation", "Hospitalization of all patients", "Specialist care only", "Urban concentration of services"], "answer": "A"}, {"q": "Community participation means that community members?", "options": ["Only receive instructions from health workers", "Are actively involved in identifying and solving health problems", "Avoid health programmes", "Provide services only to hospitals"], "answer": "B"}, {"q": "Which is an example of preventive health care?", "options": ["Immunization", "Surgical removal of an appendix", "Treatment of a fracture", "Dialysis"], "answer": "A"}, {"q": "Health promotion mainly aims to?", "options": ["Enable people to improve control over their health", "Increase drug prescriptions", "Replace sanitation programmes", "Treat only infectious diseases"], "answer": "A"}, {"q": "Which factor is a major social determinant of health?", "options": ["Education", "Blood group", "Eye colour", "Fingerprints"], "answer": "A"}, {"q": "Environmental sanitation involves?", "options": ["Keeping the environment clean and safe", "Increasing hospital fees", "Prescribing antibiotics", "Performing surgery"], "answer": "A"}, {"q": "Which is a safe source of drinking water?", "options": ["Protected borehole", "Open gutter", "Untreated stagnant pond", "Floodwater"], "answer": "A"}];
+let studentName = "", current = 0, answers = Array(questions.length).fill(null);
+
+function startTest(){
+ const input=document.getElementById("studentName");
+ studentName=input.value.trim();
+ if(!studentName){alert("Please enter your name before starting the test.");input.focus();return;}
+ document.getElementById("start").classList.add("hidden");
+ document.getElementById("test").classList.remove("hidden");
+ document.getElementById("studentDisplay").textContent="Student: "+studentName;
+ renderQuestion();
+}
+function renderQuestion(){
+ const item=questions[current];
+ document.getElementById("counter").textContent=`Question ${current+1} of ${questions.length}`;
+ document.getElementById("question").textContent=`${current+1}. ${item.q}`;
+ document.getElementById("progress").style.width=`${((current+1)/questions.length)*100}%`;
+ const box=document.getElementById("options"); box.innerHTML="";
+ item.options.forEach((option,i)=>{
+   const letter=String.fromCharCode(65+i);
+   const label=document.createElement("label"); label.className="option";
+   label.innerHTML=`<input type="radio" name="answer" value="${letter}"> <strong>${letter}.</strong> ${option}`;
+   const radio=label.querySelector("input"); radio.checked=answers[current]===letter;
+   radio.addEventListener("change",()=>answers[current]=letter);
+   box.appendChild(label);
+ });
+ document.getElementById("prevBtn").disabled=current===0;
+ document.getElementById("nextBtn").textContent=current===questions.length-1?"Submit Test":"Next";
+}
+function previousQuestion(){if(current>0){current--;renderQuestion();window.scrollTo(0,0);}}
+function nextQuestion(){if(current<questions.length-1){current++;renderQuestion();window.scrollTo(0,0);}else submitTest();}
+function submitTest(){
+ const unanswered=answers.filter(a=>a===null).length;
+ if(unanswered && !confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return;
+ let score=0; questions.forEach((q,i)=>{if(answers[i]===q.answer)score++;});
+ const percent=Math.round(score/questions.length*100);
+ document.getElementById("test").classList.add("hidden");
+ document.getElementById("result").classList.remove("hidden");
+ document.getElementById("resultName").textContent="Student: "+studentName;
+ document.getElementById("score").textContent=`${score} / ${questions.length}`;
+ document.getElementById("summary").textContent=`Percentage Score: ${percent}%`;
+}
+function showReview(){
+ const review=document.getElementById("review"); review.classList.remove("hidden");
+ review.innerHTML="<h3>Answer Review</h3>";
+ questions.forEach((q,i)=>{
+  const chosen=answers[i]||"Not answered", correct=q.answer;
+  const div=document.createElement("div"); div.className="review-item";
+  div.innerHTML=`<strong>${i+1}. ${q.q}</strong>
+  <p>Your answer: <span class="${chosen===correct?'correct':'wrong'}">${chosen}</span></p>
+  <p>Correct answer: <span class="correct">${correct}</span></p>`;
+  review.appendChild(div);
+ });
+ window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
